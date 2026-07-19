@@ -69,6 +69,20 @@
       <h2>Log</h2>
       <div id="log"></div>
     </div>
+  
+    <div class="card">
+      <h2>KDE Connect (minimal)</h2>
+      <p style="color:var(--mut);font-size:13px;margin:0 0 0.5rem">Pair devices in the KDE Connect app on each phone/desktop. ClankerDash only sends a short notification via the host <code>kdeconnect-cli</code> bridge (offline vacuum control does not need this).</p>
+      <label>Notify name / device id (optional)</label>
+      <input id="kdeDevice" type="text" placeholder="leave empty = all reachable"/>
+      <label>Test message</label>
+      <input id="kdeMsg" type="text" value="ClankerDash ping"/>
+      <div class="row">
+        <button type="button" class="btn" id="btn-kde-list">List devices</button>
+        <button type="button" class="btn primary" id="btn-kde-ping">Send notification</button>
+      </div>
+      <div id="kdeOut" style="font-family:ui-monospace,monospace;font-size:12px;color:var(--mut);margin-top:0.5rem;white-space:pre-wrap"></div>
+    </div>
   </section>
 
   <section id="page-assistant" class="page">
@@ -107,6 +121,20 @@
         <button type="button" class="btn" id="btn-connect-grok">Connect Grok (via nanogrok)</button>
       </div>
       <p style="color:var(--mut);font-size:12px;margin:0.75rem 0 0">Connect Grok opens nanogrok activation; ClankerDash itself is not “nanogrok”.</p>
+    </div>
+
+    <div class="card">
+      <h2>KDE Connect (minimal)</h2>
+      <p style="color:var(--mut);font-size:13px;margin:0 0 0.5rem">Pair devices in the KDE Connect app on each phone/desktop. ClankerDash only sends a short notification via the host <code>kdeconnect-cli</code> bridge (offline vacuum control does not need this).</p>
+      <label>Notify name / device id (optional)</label>
+      <input id="kdeDevice" type="text" placeholder="leave empty = all reachable"/>
+      <label>Test message</label>
+      <input id="kdeMsg" type="text" value="ClankerDash ping"/>
+      <div class="row">
+        <button type="button" class="btn" id="btn-kde-list">List devices</button>
+        <button type="button" class="btn primary" id="btn-kde-ping">Send notification</button>
+      </div>
+      <div id="kdeOut" style="font-family:ui-monospace,monospace;font-size:12px;color:var(--mut);margin-top:0.5rem;white-space:pre-wrap"></div>
     </div>
   </section>
   <p class="foot">ClankerDash · offline vacuum UI · assistant optional · not affiliated with Roborock or xAI</p>
@@ -239,6 +267,32 @@ $('btn-ask').onclick = async ()=>{
     out.textContent = 'error: '+e;
   }
 };
+
+// Minimal KDE Connect: call host bridge if present (scripts/kdeconnect_bridge.sh via simple CGI-less note)
+// Browser cannot run kdeconnect-cli; we POST to optional local bridge on :8791
+async function kdeBridge(path, body){
+  const r = await fetch('http://127.0.0.1:8791'+path, {
+    method: body ? 'POST' : 'GET',
+    headers: body ? {'Content-Type':'application/json'} : {},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  return r.text();
+}
+const kdeOut = document.getElementById('kdeOut');
+if (document.getElementById('btn-kde-list')) {
+  document.getElementById('btn-kde-list').onclick = async ()=>{
+    try { kdeOut.textContent = await kdeBridge('/list'); }
+    catch(e){ kdeOut.textContent = 'Bridge offline. On host run: ./scripts/kdeconnect_bridge.sh\n'+e; }
+  };
+  document.getElementById('btn-kde-ping').onclick = async ()=>{
+    const device = document.getElementById('kdeDevice').value.trim();
+    const message = document.getElementById('kdeMsg').value.trim() || 'ClankerDash ping';
+    try {
+      kdeOut.textContent = await kdeBridge('/notify', {device, message});
+    } catch(e){ kdeOut.textContent = 'Bridge offline. ./scripts/kdeconnect_bridge.sh\n'+e; }
+  };
+}
+
 </script>
 </body>
 </html>
