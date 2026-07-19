@@ -39,6 +39,23 @@ Settings → backend:
 
 ## Run (lab)
 
+### Host-first (recommended)
+
+Robot image may lack Python. Serve UI on BlackCube; control robot over LAN:
+
+```bash
+# on robot: rockctl serve --port 8080
+cd ~/Dev/clankerdash && ./scripts/run_host.sh
+# open http://127.0.0.1:8790/  (or http://<blackcube-ip>:8790/)
+# Settings → rockctl URL = http://192.168.1.88:8080
+```
+
+### On-robot static files
+
+`scripts/install_robot.sh` copies UI to `/mnt/data/clankerdash/` for a future tiny static server.
+
+## Run (lab — legacy)
+
 ```bash
 # robot already has rockctl + optional nanogrok
 # serve ClankerDash static UI (example)
