@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ClankerDash</title>
+<style>
+  :root { color-scheme: dark; --bg:#0d1114; --fg:#e8eef2; --acc:#5eead4; --mut:#8b9a9f; --line:#1e2a2e; --danger:#f87171; --ok:#4ade80; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 15px/1.4 system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  header { padding:0.75rem 1rem; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; }
+  header b { color:var(--acc); letter-spacing:0.04em; }
+  nav button { background:transparent; border:1px solid var(--line); color:var(--fg); padding:0.4rem 0.75rem; border-radius:6px; cursor:pointer; }
+  nav button.active { border-color:var(--acc); color:var(--acc); }
+  main { max-width:40rem; margin:0 auto; padding:1rem; }
+  .card { border:1px solid var(--line); border-radius:10px; padding:1rem; margin-bottom:1rem; }
+  .card h2 { margin:0 0 0.75rem; font-size:1rem; color:var(--mut); font-weight:600; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(7rem,1fr)); gap:0.5rem; }
+  .btn { background:#1a2428; border:1px solid var(--line); color:var(--fg); padding:0.75rem; border-radius:8px; cursor:pointer; font:inherit; }
+  .btn:active { border-color:var(--acc); }
+  .btn.primary { background:var(--acc); color:#042f2e; font-weight:700; border:0; }
+  .btn.danger { border-color:var(--danger); color:var(--danger); }
+  #status { font-family: ui-monospace, monospace; font-size:13px; white-space:pre-wrap; color:var(--ok); min-height:3rem; }
+  #log { font-family: ui-monospace, monospace; font-size:12px; color:var(--mut); max-height:10rem; overflow:auto; }
+  label { display:block; font-size:12px; color:var(--mut); margin:0.5rem 0 0.25rem; }
+  input, select { width:100%; padding:0.5rem; border-radius:6px; border:1px solid var(--line); background:#11181c; color:var(--fg); font:inherit; }
+  .row { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem; }
+  .page { display:none; } .page.on { display:block; }
+  .foot { font-size:11px; color:var(--mut); margin-top:1.5rem; }
+</style>
+</head>
+<body>
+<header>
+  <span><b>ClankerDash</b> · offline robot control</span>
+  <nav>
+    <button type="button" data-page="control" class="active">Control</button>
+    <button type="button" data-page="assistant">Assistant</button>
+    <button type="button" data-page="settings">Settings</button>
+  </nav>
+</header>
+<main>
+  <section id="page-control" class="page on">
+    <div class="card">
+      <h2>Status</h2>
+      <div id="status">Loading…</div>
+      <div class="row"><button type="button" class="btn" id="btn-refresh">Refresh</button></div>
+    </div>
+    <div class="card">
+      <h2>Cleaning (offline · rockctl)</h2>
+      <div class="grid">
+        <button type="button" class="btn primary" data-cmd="start">Start</button>
+        <button type="button" class="btn" data-cmd="pause">Pause</button>
+        <button type="button" class="btn" data-cmd="stop">Stop</button>
+        <button type="button" class="btn" data-cmd="home">Home / Dock</button>
+        <button type="button" class="btn" data-cmd="spot">Spot</button>
+        <button type="button" class="btn" data-cmd="locate">Locate</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Fan</h2>
+      <div class="grid">
+        <button type="button" class="btn" data-fan="quiet">Quiet</button>
+        <button type="button" class="btn" data-fan="balanced">Balanced</button>
+        <button type="button" class="btn" data-fan="turbo">Turbo</button>
+        <button type="button" class="btn" data-fan="max">Max</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Log</h2>
+      <div id="log"></div>
+    </div>
+  </section>
+
+  <section id="page-assistant" class="page">
+    <div class="card">
+      <h2>Assistant (optional · nanogrok / llama.cpp)</h2>
+      <p style="color:var(--mut);font-size:13px;margin:0 0 0.75rem">Not required for cleaning. Offline control stays on Control tab.</p>
+      <label>Message</label>
+      <input id="ask" type="text" placeholder="Ask Clanker assistant…"/>
+      <div class="row">
+        <button type="button" class="btn primary" id="btn-ask">Send</button>
+      </div>
+      <div id="assistant-out" style="margin-top:0.75rem;font-family:ui-monospace,monospace;font-size:13px;white-space:pre-wrap"></div>
+    </div>
+  </section>
+
+  <section id="page-settings" class="page">
+    <div class="card">
+      <h2>rockctl (offline)</h2>
+      <label>rockctl HTTP base</label>
+      <input id="rockUrl" type="text" value="http://127.0.0.1:8080"/>
+    </div>
+    <div class="card">
+      <h2>Assistant backend</h2>
+      <label>Mode</label>
+      <select id="assistMode">
+        <option value="none">None (offline only)</option>
+        <option value="nanogrok">nanogrok</option>
+        <option value="llama">llama.cpp (OpenAI-compatible)</option>
+      </select>
+      <label>nanogrok URL</label>
+      <input id="nanoUrl" type="text" value="http://127.0.0.1:8787"/>
+      <label>llama.cpp base</label>
+      <input id="llamaUrl" type="text" value="http://127.0.0.1:8081/v1"/>
+      <div class="row">
+        <button type="button" class="btn primary" id="btn-save">Save</button>
+        <button type="button" class="btn" id="btn-connect-grok">Connect Grok (via nanogrok)</button>
+      </div>
+      <p style="color:var(--mut);font-size:12px;margin:0.75rem 0 0">Connect Grok opens nanogrok activation; ClankerDash itself is not “nanogrok”.</p>
+    </div>
+  </section>
+  <p class="foot">ClankerDash · offline vacuum UI · assistant optional · not affiliated with Roborock or xAI</p>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const logEl = $('log');
+function log(t){ logEl.textContent = (new Date().toLocaleTimeString())+' '+t+'\n'+logEl.textContent; }
+function loadCfg(){
+  try { return JSON.parse(localStorage.getItem('clankerdash')||'{}'); } catch(e){ return {}; }
+}
+function saveCfg(c){ localStorage.setItem('clankerdash', JSON.stringify(c)); }
+function cfg(){
+  const c = loadCfg();
+  $('rockUrl').value = c.rockUrl || 'http://127.0.0.1:8080';
+  $('assistMode').value = c.assistMode || 'none';
+  $('nanoUrl').value = c.nanoUrl || 'http://127.0.0.1:8787';
+  $('llamaUrl').value = c.llamaUrl || 'http://127.0.0.1:8081/v1';
+  return c;
+}
+cfg();
+
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+    $('page-'+b.dataset.page).classList.add('on');
+  };
+});
+
+async function rock(path, opts){
+  const base = ($('rockUrl').value||'http://127.0.0.1:8080').replace(/\/$/,'');
+  const r = await fetch(base+path, opts||{});
+  const t = await r.text();
+  log((opts&&opts.method||'GET')+' '+path+' → '+r.status+' '+t.slice(0,120));
+  return t;
+}
+
+async function refreshStatus(){
+  try {
+    // try common rockctl serve paths
+    let t = '';
+    for (const p of ['/status','/','/api/status']) {
+      try {
+        const base = ($('rockUrl').value||'').replace(/\/$/,'');
+        const r = await fetch(base+p, {method:'GET'});
+        if (r.ok) { t = await r.text(); break; }
+      } catch(e){}
+    }
+    $('status').textContent = t || '(no status — is rockctl serve running?)';
+  } catch(e) {
+    $('status').textContent = 'offline: '+e;
+  }
+}
+$('btn-refresh').onclick = refreshStatus;
+refreshStatus();
+setInterval(refreshStatus, 15000);
+
+document.querySelectorAll('[data-cmd]').forEach(b=>{
+  b.onclick = async ()=>{
+    const cmd = b.dataset.cmd;
+    // rockctl HTTP may use POST /cmd or GET — try raw shell via peer if needed
+    try {
+      await rock('/'+cmd, {method:'POST'});
+    } catch(e) {
+      try { await rock('/?cmd='+encodeURIComponent(cmd)); } catch(e2){ log('fail '+cmd+' '+e2); }
+    }
+    refreshStatus();
+  };
+});
+document.querySelectorAll('[data-fan]').forEach(b=>{
+  b.onclick = async ()=>{
+    const f = b.dataset.fan;
+    try { await rock('/fan/'+f, {method:'POST'}); } catch(e){ log('fan '+e); }
+    refreshStatus();
+  };
+});
+
+$('btn-save').onclick = ()=>{
+  saveCfg({
+    rockUrl: $('rockUrl').value,
+    assistMode: $('assistMode').value,
+    nanoUrl: $('nanoUrl').value,
+    llamaUrl: $('llamaUrl').value
+  });
+  log('settings saved');
+};
+
+$('btn-connect-grok').onclick = ()=>{
+  const u = ($('nanoUrl').value||'http://127.0.0.1:8787').replace(/\/$/,'');
+  window.open(u+'/activate', '_blank');
+  log('opened nanogrok activate');
+};
+
+$('btn-ask').onclick = async ()=>{
+  const text = $('ask').value.trim(); if(!text) return;
+  const c = { rockUrl:$('rockUrl').value, assistMode:$('assistMode').value, nanoUrl:$('nanoUrl').value, llamaUrl:$('llamaUrl').value };
+  saveCfg(c);
+  const out = $('assistant-out');
+  out.textContent = '…';
+  try {
+    if (c.assistMode === 'none') {
+      out.textContent = 'Assistant off — enable nanogrok or llama in Settings. Vacuum controls stay on Control tab.';
+      return;
+    }
+    if (c.assistMode === 'nanogrok') {
+      const base = c.nanoUrl.replace(/\/$/,'');
+      const r = await fetch(base+'/api/chat', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({prompt:text})
+      });
+      const j = await r.json();
+      out.textContent = j.reply || j.error || JSON.stringify(j);
+      return;
+    }
+    if (c.assistMode === 'llama') {
+      const base = c.llamaUrl.replace(/\/$/,'');
+      const r = await fetch(base+'/chat/completions', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model: 'local',
+          messages: [{role:'user', content:text}]
+        })
+      });
+      const j = await r.json();
+      out.textContent = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || JSON.stringify(j);
+    }
+  } catch(e) {
+    out.textContent = 'error: '+e;
+  }
+};
+</script>
+</body>
+</html>
