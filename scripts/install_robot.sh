@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install ClankerDash static UI on robot (separate from nanogrok)
+# Install ClankerDash static UI on robot (separate from nanobot)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 IP="${CLANKER_IP:-192.168.1.88}"
