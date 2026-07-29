@@ -2,7 +2,11 @@
 # Install ClankerDash static UI on robot (separate from nanobot)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-IP="${CLANKER_IP:-192.168.1.88}"
+IP="${CLANKER_IP:-${CLANKER_HOST:-}}"
+if [ -z "$IP" ]; then
+  echo "Set CLANKER_IP or CLANKER_HOST to the robot address" >&2
+  exit 1
+fi
 DEST=/mnt/data/clankerdash
 ssh -o BatchMode=yes -o StrictHostKeyChecking=no root@"$IP" "mkdir -p $DEST"
 # robots without sftp: use tar over ssh
